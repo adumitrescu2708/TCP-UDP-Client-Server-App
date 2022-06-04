@@ -1,0 +1,118 @@
+@ Dumitrescu Alexandra 323CA ACS UPB
+@ 2022-05-07
+___________________________
+
+TCP UDP Client - Server App
+___________________________
+
+
+@ Table of Contents
+    1. Archive Format
+    2. Work Flow
+    3. Structures and Components
+    4. Application Protocol
+    5. Time & Memory Efficiency
+
+@ Archive Format
+    
+    ./  |   server.cpp      (Main cpp files for the logic of the app)
+        |   subscriber.cpp
+        |
+        |__ Components      (Auxiliar cpp files for command validation
+                |            data storage & updating)
+                |
+                |__  database.cpp
+                |__  command_parser.cpp
+        |        
+        |___ include        (Main header files describing the format of
+                |           of the send/recived packets and structures used)
+                |
+                |__ constants.h 
+                |__ post.h, database.h, subscriber.h
+                |__ command_parser.h
+                |__ utils.h 
+
+@ Work Flow
+   
+    1.  There are 2 clients: TCP client and UDP client
+
+        1.1     The UDP client sends messages having the format
+                <topic - type - content> to the server and the
+                server is responsible for forwarding the
+                messages to the subscribed clients to the <topic>. In
+                case the client is offline, the server puts the Post
+                in the client's queue in order to receive the messages
+                once it loggs in.
+
+        1.2.    The TCP client can receive messages from STDIN or
+                from the server. It can subscribe/unsubscribe to a specific
+                topic.
+    
+    2.  The server is responsible for the sending the received information
+        such as new client or new post or new subscribe/unsubscribe request
+        to the local Database component. It also sends the messages back
+        to the client once the Databased finished parsing them.
+
+    3.  The Database stores the clients (adds / removes clients) into
+        its maps and designed the store and forward part of the app.
+
+
+@ Structures and Components
+
+    1.  The main design is described in the <include> folder in the
+        corresponding header files.
+
+    2.  Subscriber:
+        | SOCKET | ID | ONLINE | QUEUE | SUBSCRIPTIONS |
+        |________|____|________|_______|_______________|
+
+        SOCKET  - port in the server
+        ID      - unique string identifier
+        ONLINE  - true/false if the client is connected
+        QUEUE   - queue of subscription Posts
+        SUBSCRIPTIONS - map< subscription, SF >
+    
+    2. Posts
+        2.1 UDP client Post protoype:
+            | TOPIC   | TYPE | CONTENT |
+            |_________|______|_________|
+
+        2.2 TCP client Post prototype:
+            | OPERATION | CONTENT |
+            |___________|_________|
+        
+        2.3 TCP Header
+            | SIZE  | OPERATION |
+            |_______|___________|
+
+            SIZE        - number of bytes that follow the header
+            OPERATION   - unique code identifier described in constant.h
+
+    3. Command Parser - basic validation checks on the received commands
+    4. Database - Described in the Efficiency Content
+
+@ Application Protocol
+
+    1.  The server and the TCP clients communicate via a simple protocol:
+        Each time a message is send (a string buffer) first send a header
+        having specified the total length of the body and the operation
+        type and then the body (string).
+    
+    2.  When the receiver receives a message, first obtains the header and
+        then knows the exact number of bytes that will be received.
+
+@ Time and Memory Efficiency
+
+    1.  I consider the App being time efficient since the database
+        focuses on mapping the received information on clients in
+        hasmaps (unordered_maps) in order to identify the clients
+        by ID/socket in O(1).
+
+    2.  The Store-and-Forward part of the App is solved using
+        a hashmap of <subscription, vector<subscribers>> in order
+        to retrieve information in O(1)
+
+
+@ Credits
+    1. Team of PCom 2022 for laboratories and helpers.h
+
